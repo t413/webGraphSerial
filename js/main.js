@@ -1,67 +1,62 @@
 
-// var source = new EventSource('/data');
-// source.onmessage = function(e) {
-//	 document.getElementById('data').innerHTML = e.data;
-// };
+var points_to_keep = 60;
+var number_channels = 3;
+function input_parser(incoming) {
+	var res = incoming.split(",");
+	if (res.length < 3
+		) { return 0; }
+	else { return res; }
+}
+
 
 $(function () {
 $(document).ready(function() {
-	var chart;
-	chart = new Highcharts.Chart({
+	var dataEventSource;
+
+	var chart = new Highcharts.Chart({
 		chart: {
-			renderTo: 'data_container',
-			type: 'spline',
-			marginRight: 10,
-			events: {
-				load: function() {
-					// set up the updating of the chart each second
-					var series = this.series[0];
-						setInterval(function() {
-							var x = (new Date()).getTime(), // current time
-							y = Math.random();
-							series.addPoint([x, y], true, true);
-					 	}, 1000);
-				}
+			renderTo: 'graph_data',
+			type: 'line',
+            animation: false,
+			marginRight: 10
+		},
+
+		title: { text: 'Incoming Live Data' },
+		tooltip: { enabled: false },
+		plotOptions: {
+			series: { marker: { enabled: false } }
+		},
+		yAxis: { max:1000, min:0 },
+
+		series: (function(){ //create series's data array on-the-go
+			var series = [];
+			for (var i = 1; i <= number_channels; i++) {
+				series.push( { name: "Input Channel "+i, data: [] } ); 
 			}
-		},
-
-		title: {
-			text: 'Live random data'
-		},
-
-		xAxis: {
-			type: 'datetime',
-			tickPixelInterval: 150
-		},
-
-		yAxis: {
-			title: { text: 'Value' },
-
-			plotLines: [{
-				value: 0,
-				width: 1,
-				color: '#808080'
-			}]
-		},
-
-		series: [{
-			name: 'Random data',
-			data: (function() {
-				// generate an array of random data
-				var data = [],
-					time = (new Date()).getTime(),
-					i;
-
-				for (i = -19; i <= 0; i++) {
-					data.push({
-						x: time + i * 1000,
-						y: Math.random()
-					});
-				}
-				return data;
-			})()
-		}]
+			return series;
+		})()
 	});//new highchart
+	
+	$('#startStop').toggle(function(){
+		var series = chart.series;
+		dataEventSource = new EventSource('/data');
+		dataEventSource.onmessage = function(e) {
+			var n_data = input_parser(e.data); //returns an array[] of points
+			if (n_data) {
+				var keep_old = (series[0].data.length > points_to_keep);
+				for (var i = 0; i < n_data.length; i++) {
+					series[i].addPoint( parseInt(n_data[i]),false,keep_old);
+				};
+				chart.redraw(); //update the changes on the chart
+			} else {
+				console.log(e.data);
+			}
+		};
+		this.innerHTML = "Stop Charting";
+	},function(){
+		if (dataEventSource) { dataEventSource.close(); }
+		this.innerHTML = "Start Charting";
+	});
 
 }); //$(document).ready
 }); //anomous fcn
