@@ -1,5 +1,39 @@
+from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+from os import curdir, sep
+import mimetypes
+readDataFn = 0
 
 
+class httpHandler(BaseHTTPRequestHandler):
+
+	def do_GET(self):
+		try:
+			if self.path == "/data":
+				self.send_response(200)
+				self.send_header('Content-Type',	'text/event-stream')
+				self.end_headers()
+				i=0
+				while(True):
+					try:
+						self.wfile.write("data: " + readDataFn() + "\n\n")
+						#time.sleep(1)
+						i += 1
+					except KeyboardInterrupt:
+						break
+				return
+			try:
+				fi = open(curdir + self.path, 'rb')
+				self.send_response(200)
+				self.send_header('Content-Type',	mimetypes.guess_type(self.path)[0] )
+				self.end_headers()
+				self.wfile.write( fi.read() )
+
+			except IOError:
+				self.send_error(404,'File Not Found: %s' % self.path)
+				return
+			
+		except IOError:
+			self.send_error(404,'File Noooot Found: %s' % self.path)		
 
 
 if __name__ == '__main__':
@@ -45,24 +79,14 @@ if __name__ == '__main__':
 			except OSError, e:
 				raise IOError(e)
 		#connect.close()
-	
-	while True:
-		try:
-			print readConnection(),
-		except IOError, e:
-			print "\nConnection Error: \n%s\n" % (e)
-			break
-		except (KeyboardInterrupt, SystemExit):
-			print '\nstopping'
-			break
+	global readDataFn
+	readDataFn = readConnection
 
-	# try:
-	# 	server = HTTPServer(('', 8080), MyHandler)
-	# 	print 'started httpserver...'
-	# 	server.serve_forever()
-	# except KeyboardInterrupt:
-	# 	print '^C received, shutting down server'
-	# 	server.socket.close()
-
-
+	try:
+		server = HTTPServer(('', 8080), httpHandler)
+		print 'started httpserver...'
+		server.serve_forever()
+	except KeyboardInterrupt:
+		print '^C received, shutting down server'
+		server.socket.close()
 
