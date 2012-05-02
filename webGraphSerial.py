@@ -26,7 +26,7 @@ if __name__ == '__main__':
 		connect = TeensyRawhid.Rawhid()
 		connect.open(vid=int(myargs.vid,16), pid=int(myargs.pid,16))
 		
-		def myread():
+		def readConnection():
 			try:
 				return connect.recv(50, 1000) #(buff size, timeout)
 			except Warning:
@@ -39,7 +39,7 @@ if __name__ == '__main__':
 		connect = serial.Serial(myargs.device, myargs.baud)
 		connect.open()
 		
-		def myread():
+		def readConnection():
 			try:
 				return connect.read(100)
 			except OSError, e:
@@ -48,7 +48,7 @@ if __name__ == '__main__':
 	
 	while True:
 		try:
-			print myread(),
+			print readConnection(),
 		except IOError, e:
 			print "\nConnection Error: \n%s\n" % (e)
 			break
